@@ -1,0 +1,724 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="Redis是一个开源的使用ANSI C语言编写、支持网络、可基于内存亦可持久化的日志型、Key-Value数据库，并提供多种语言的API。今天我们来看下php结合redis的一些应用场景">
+<meta property="og:type" content="article">
+<meta property="og:title" content="项目中Redis的应用场景">
+<meta property="og:url" content="http://sunmz.cn/2017/05/08/项目中Redis的应用场景/index.html">
+<meta property="og:site_name" content="一只麦子">
+<meta property="og:description" content="Redis是一个开源的使用ANSI C语言编写、支持网络、可基于内存亦可持久化的日志型、Key-Value数据库，并提供多种语言的API。今天我们来看下php结合redis的一些应用场景">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2017-06-24T06:18:05.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="项目中Redis的应用场景">
+<meta name="twitter:description" content="Redis是一个开源的使用ANSI C语言编写、支持网络、可基于内存亦可持久化的日志型、Key-Value数据库，并提供多种语言的API。今天我们来看下php结合redis的一些应用场景">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"post","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://sunmz.cn/2017/05/08/项目中Redis的应用场景/"/>
+
+
+
+
+
+  <title> 项目中Redis的应用场景 | 一只麦子 </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">一只麦子</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">技术·代码·生活</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://sunmz.cn/2017/05/08/项目中Redis的应用场景/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="sunmz">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="http://ooypj2omz.bkt.clouddn.com/FullSizeRender.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="一只麦子">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                项目中Redis的应用场景
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-08T14:02:40+08:00">
+                2017-05-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/blog/" itemprop="url" rel="index">
+                    <span itemprop="name">blog</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+              <div class="post-description">
+                  Redis是一个开源的使用ANSI C语言编写、支持网络、可基于内存亦可持久化的日志型、Key-Value数据库，并提供多种语言的API。今天我们来看下php结合redis的一些应用场景
+              </div>
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="导语"><a href="#导语" class="headerlink" title="导语"></a>导语</h2><blockquote>
+<p>Redis是一个开源的使用ANSI C语言编写、支持网络、可基于内存亦可持久化的日志型、Key-Value数据库，并提供多种语言的API。今天我们来看下php结合redis的一些应用场景。</p>
+</blockquote>
+<h3 id="商品维度计数"><a href="#商品维度计数" class="headerlink" title="商品维度计数"></a>商品维度计数</h3><p>对商品喜欢数，评论数，鉴定数，浏览数进行计数。说起电商，肯定离不开商品，而附带商品有各种计数（喜欢数，评论数，鉴定数，浏览数,etc）Redis的命令都是原子性的，你可以轻松地利用INCR，DECR等命令来计数。</p>
+<p>采用Redis 的类型: Hash. 如果你对redis数据类型不太熟悉，可以参考<a href="http://redis.io/topics/data-types-intro" target="_blank" rel="external">http://redis.io/topics/data-types-intro</a></p>
+<p>为product定义个key product:，为每种数值定义hashkey, 譬如喜欢数like_num</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">$redis-&gt;hSet(&apos;product:123&apos;, &apos;like_num &apos;, 5); // 添加 id为123的商品 like_num 为5</div><div class="line">  </div><div class="line">$redis-&gt;hIncrBy(&apos;product:123&apos;, &apos;like_num &apos;, 1); // 添加 id为123的商品like_num +1</div><div class="line"> </div><div class="line">$redis-&gt;hGetAll(&apos;product:123&apos;); // 获取id为123的商品相关信息</div><div class="line"></div><div class="line">array(&apos;like_num &apos;=&gt; 1)  //输出</div></pre></td></tr></table></figure>
+<h3 id="用户维度计数"><a href="#用户维度计数" class="headerlink" title="用户维度计数"></a>用户维度计数</h3><p>对用户动态数、关注数、粉丝数、喜欢商品数、发帖数等计数<br>用户维度计数同商品维度计数都采用 Hash. 为User定义个key 为 user:<br>为每种数值定义hashkey, 譬如关注数follow</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">$redis-&gt;hSet(&apos;user:100000&apos;, &apos;follow &apos;, 5); // 添加uid为10000的用户follow 为5</div><div class="line">  </div><div class="line">$redis-&gt;hIncrBy(&apos;user:100000&apos;, &apos;follow &apos;, 1); // 更新uid为10000的用户follow +1</div><div class="line"> </div><div class="line">$redis-&gt;hGetAll(&apos;user:100000&apos;); // 获取uid为10000的用户</div><div class="line"></div><div class="line">array(&apos;like_num &apos;=&gt; 1) //输出</div><div class="line">```                 </div><div class="line">### 存储社交关系</div><div class="line">譬如将用戶的好友/粉丝/关注，可以存在一个sorted set中，score可以是timestamp</div><div class="line">默认集合按照score递增排序</div><div class="line">这样求两个人的共同好友的操作，可能就只需要用求交集命令即可</div></pre></td></tr></table></figure>
+<p>$redis-&gt;zAdd(‘user:1000:follow’, 1463557212, ‘1001’);<br>//uid为1000用户关注uid为1001 , score值设定时间戳1463557212<br>$redis-&gt;zAdd(‘user:1000:follow’, 1463557333, ‘1002’);<br>$redis-&gt;zAdd(‘user:2000:follow’, 1463577568, ‘1001’);<br>$redis-&gt;zAdd(‘user:2000:follow’, 1463896964, ‘1003’);<br>//uid为2000用户关注1001和1003用户 , score值设定时间戳</p>
+<p>//对集合’user:1000:follow’和’user:2000:follow’取交集’com_fllow:1000:2000’<br>$redis-&gt;zInter(‘com_fllow:1000:2000’, array(‘user:1000:follow’, ‘user:2000:follow’)); </p>
+<p>//获得共同关注的uid<br>$redis-&gt;zRange(‘com_fllow:1000:2000’,0,-1); // 获取全部集合元素</p>
+<p>array(‘10001’,’10002’)<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">### 用作缓存代替memcached</div></pre></td></tr></table></figure></p>
+<p>//获取5秒内操作记录<br>$res = $redis-&gt;zRangeByScore(‘user:1000:comment’, time() - 5, time());</p>
+<p>//判断5秒内不能评论<br>if (!$res) {<br>  $redis-&gt;zAdd(‘user:1000:comment’, time(), ‘评论内容’);<br>} else {<br>  echo ‘5秒之内不能评论’;<br>}</p>
+<p>//5秒内评论不得超过2次<br>if($redis-&gt;zRangeByScore(‘user:1000:comment’,time()-5 ,time())==1)<br>echo ‘5秒之内不能评论2次’;</p>
+<p>//5秒内评论不得少于2次<br>if(count($redis-&gt;zRangeByScore(‘user:1000:comment’,time()-5 ,time()))<2) echo="" '5秒之内不能评论2次';="" <figure="" class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">### 用户Timeline/Feeds</div><div class="line">应用于关注的人、主题、品牌及专栏</div><div class="line">redis在这边主要当作cache使用</div></pre></td></tr></table></2)></p>
+<p>$redis-&gt;zAdd(‘user:2000:feed:topic’, time(), ‘13’);<br>//score 为timestamp uid为2000的用户关注tid为13的topic</p>
+<p>$redis-&gt;expire(‘user:2000:feed:topic’,24<em>60</em>60);<br>//关注有效期为24小时<br>//ttl 30天之内按秒数计算 30天之外以timestamp为准<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"></div><div class="line">### 最新列表&amp;排行榜</div><div class="line">用于记录用户刚刚喜欢的商品最新列表or排行榜 等业务场景</div><div class="line">商品最新列表-sorted set结构呈现</div></pre></td></tr></table></figure></p>
+<p>$redis-&gt;zAdd(‘user:1000:product:like’, time(), ‘3002’);<br>$redis-&gt;zAdd(‘user:1000:product:like’, time(), ‘3001’);<br>$redis-&gt;zAdd(‘user:1000:product:like’, time(), ‘3004’);<br>$redis-&gt;zAdd(‘user:1000:product:like’, time(), ‘3003’);<br>$redis-&gt;zRange(‘user:1000:product:like’, 0, -1,true); </p>
+<p>//默认喜欢时间升序序排列<br>  Array(<br>    [3002] =&gt; 1463565179<br>    [3001] =&gt; 1463565189<br>    [3004] =&gt; 1463565199<br>    [3003] =&gt; 1463565209<br>  )</p>
+<p>$redis-&gt;zRevRange(‘user:1000:product:like’, 0, -1,true); </p>
+<p>//以喜欢时间降序排列<br>  Array<br>  (<br>    [3003] =&gt; 1463565424<br>    [3004] =&gt; 1463565414<br>    [3001] =&gt; 1463565404<br>    [3002] =&gt; 1463565394<br>  )</p>
+<p>//排行榜-list数据结构呈现<br>$redis-&gt;lPush(‘user:1000:product:like’, ‘3002’);<br>$redis-&gt;lPush(‘user:1000:product:like’, ‘3001’);<br>$redis-&gt;lPush(‘user:1000:product:like’, ‘3004’);<br>$redis-&gt;lPush(‘user:1000:product:like’, ‘3003’);<br>$redis-&gt;lRange(‘user:1000:product:like’, 0, -1);</p>
+<p>Array<br>(<br>  [0] =&gt; 3003<br>  [1] =&gt; 3004<br>  [2] =&gt; 3001<br>  [3] =&gt; 3002<br>)</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">### 消息通知</div><div class="line">采用Hash结构对消息通知业务场景计数</div></pre></td></tr></table></figure>
+<p>$redis-&gt;hSet(‘user:1000:message:notice’, ‘system’, 1);<br>//设置1条未读系统消息</p>
+<p>$redis-&gt;hIncrBy(‘user:1000:message:notice’, ‘system’, 1);<br>//未读系统消息+1</p>
+<p>$redis-&gt;hSet(‘user:1000:message:notice’, ‘comment’, 1);<br>//设置1条未读评论</p>
+<p>$redis-&gt;hIncrBy(‘user:1000:message:notice’, ‘comment’, 1);<br>//未读评论+1</p>
+<p>$redis-&gt;hGetAll(‘user:1000:message:notice’);<br>//查看所有消息通知数量</p>
+<p>Array<br>(<br>  [system] =&gt; 2<br>  [comment] =&gt; 2<br>)<br>```</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/05/07/认识Redis/" rel="next" title="认识Redis">
+                <i class="fa fa-chevron-left"></i> 认识Redis
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/05/09/用redis实现用户登录计数/" rel="prev" title="用redis实现用户登录计数">
+                用redis实现用户登录计数 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="http://ooypj2omz.bkt.clouddn.com/FullSizeRender.jpg"
+               alt="sunmz" />
+          <p class="site-author-name" itemprop="name">sunmz</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">12</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">2</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#导语"><span class="nav-number">1.</span> <span class="nav-text">导语</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#商品维度计数"><span class="nav-number">1.1.</span> <span class="nav-text">商品维度计数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#用户维度计数"><span class="nav-number">1.2.</span> <span class="nav-text">用户维度计数</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">sunmz</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
