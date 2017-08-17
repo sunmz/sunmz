@@ -1,0 +1,714 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.0" />
+
+
+
+
+
+
+<meta name="description" content="本文举例说明如何使用 nginx 实现负载均衡。因为nginx在处理并发方面的优势，现在这个应用非常常见。当然了Apache的mod_proxy和mod_cache结合使用也可以实现对多台app server的反向代理和负载均衡，但是在并发处理方面apache还是没有nginx擅长。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Nginx简介及使用Nginx实现负载均衡的原理">
+<meta property="og:url" content="http://sunmz.cn/2017/08/17/Nginx简介及使用Nginx实现负载均衡的原理/index.html">
+<meta property="og:site_name" content="一只麦子">
+<meta property="og:description" content="本文举例说明如何使用 nginx 实现负载均衡。因为nginx在处理并发方面的优势，现在这个应用非常常见。当然了Apache的mod_proxy和mod_cache结合使用也可以实现对多台app server的反向代理和负载均衡，但是在并发处理方面apache还是没有nginx擅长。">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2017-08-17T00:53:25.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Nginx简介及使用Nginx实现负载均衡的原理">
+<meta name="twitter:description" content="本文举例说明如何使用 nginx 实现负载均衡。因为nginx在处理并发方面的优势，现在这个应用非常常见。当然了Apache的mod_proxy和mod_cache结合使用也可以实现对多台app server的反向代理和负载均衡，但是在并发处理方面apache还是没有nginx擅长。">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"post","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://sunmz.cn/2017/08/17/Nginx简介及使用Nginx实现负载均衡的原理/"/>
+
+
+
+
+
+  <title> Nginx简介及使用Nginx实现负载均衡的原理 | 一只麦子 </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">一只麦子</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">技术·代码·生活</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://sunmz.cn/2017/08/17/Nginx简介及使用Nginx实现负载均衡的原理/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="sunmz">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="http://ooypj2omz.bkt.clouddn.com/FullSizeRender.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="一只麦子">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                Nginx简介及使用Nginx实现负载均衡的原理
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-17T08:49:36+08:00">
+                2017-08-17
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/blog/" itemprop="url" rel="index">
+                    <span itemprop="name">blog</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+              <div class="post-description">
+                  本文举例说明如何使用 nginx 实现负载均衡。因为nginx在处理并发方面的优势，现在这个应用非常常见。当然了Apache的mod_proxy和mod_cache结合使用也可以实现对多台app server的反向代理和负载均衡，但是在并发处理方面apache还是没有nginx擅长。
+              </div>
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>nginx 这个轻量级、高性能的 web server 主要可以干两件事情：<br>　　〉直接作为http server(代替apache，对PHP需要FastCGI处理器支持)；<br>　　〉另外一个功能就是作为反向代理服务器实现负载均衡</p>
+<p>以下我们就来举例说明如何使用 nginx 实现负载均衡。因为nginx在处理并发方面的优势，现在这个应用非常常见。当然了Apache的 mod_proxy和mod_cache结合使用也可以实现对多台app server的反向代理和负载均衡，但是在并发处理方面apache还是没有 nginx擅长。</p>
+</blockquote>
+<h4 id="环境："><a href="#环境：" class="headerlink" title="环境："></a>环境：</h4><h5 id="我们本地是Windows系统，然后使用VirutalBox安装一个虚拟的Linux系统。"><a href="#我们本地是Windows系统，然后使用VirutalBox安装一个虚拟的Linux系统。" class="headerlink" title="我们本地是Windows系统，然后使用VirutalBox安装一个虚拟的Linux系统。"></a>我们本地是Windows系统，然后使用VirutalBox安装一个虚拟的Linux系统。</h5><p>　　在本地的Windows系统上分别安装nginx(侦听8080端口)和apache(侦听80端口)。在虚拟的Linux系统上安装apache(侦听80端口)。<br>　　这样我们相当于拥有了1台nginx在前端作为反向代理服务器；后面有2台apache作为应用程序服务器(可以看作是小型的server cluster。;-) )；</p>
+<h5 id="nginx用来作为反向代理服务器，放置到两台apache之前，作为用户访问的入口；"><a href="#nginx用来作为反向代理服务器，放置到两台apache之前，作为用户访问的入口；" class="headerlink" title="nginx用来作为反向代理服务器，放置到两台apache之前，作为用户访问的入口；"></a>nginx用来作为反向代理服务器，放置到两台apache之前，作为用户访问的入口；</h5><p>　　nginx仅仅处理静态页面，动态的页面(php请求)统统都交付给后台的两台apache来处理。<br>　　也就是说，可以把我们网站的静态页面或者文件放置到nginx的目录下；动态的页面和数据库访问都保留到后台的apache服务器上。</p>
+<h5 id="如下介绍两种方法实现server-cluster的负载均衡。"><a href="#如下介绍两种方法实现server-cluster的负载均衡。" class="headerlink" title="如下介绍两种方法实现server cluster的负载均衡。"></a>如下介绍两种方法实现server cluster的负载均衡。</h5><p>　　我们假设前端nginx(为127.0.0.1:80)仅仅包含一个静态页面index.html；<br>　　后台的两个apache服务器(分别为localhost:80和158.37.70.143:80)，一台根目录放置phpMyAdmin文件夹和test.php(里面测试代码为print “server1“;)，另一台根目录仅仅放置一个test.php(里面测试代码为 print “server2“;)。</p>
+<h4 id="针对不同请求-的负载均衡："><a href="#针对不同请求-的负载均衡：" class="headerlink" title="针对不同请求 的负载均衡："></a>针对不同请求 的负载均衡：</h4><h5 id="在最简单地构建反向代理的时候-nginx仅仅处理静态不处理动态内容，动态内容交给后台的apache-server来处理-，我们具体的设置为：在nginx-conf中修改："><a href="#在最简单地构建反向代理的时候-nginx仅仅处理静态不处理动态内容，动态内容交给后台的apache-server来处理-，我们具体的设置为：在nginx-conf中修改：" class="headerlink" title="在最简单地构建反向代理的时候 (nginx仅仅处理静态不处理动态内容，动态内容交给后台的apache server来处理)，我们具体的设置为：在nginx.conf中修改："></a>在最简单地构建反向代理的时候 (nginx仅仅处理静态不处理动态内容，动态内容交给后台的apache server来处理)，我们具体的设置为：在nginx.conf中修改：</h5><p>　　复制代码 代码如下:</p>
+<p>　　location ~ .php$ {<br>　　proxy_pass 158.37.70.143:80 ;<br>　　}</p>
+<p>　　〉 这样当客户端访问localhost:8080/index.html的时候，前端的nginx会自动进行响应；<br>　　〉当用户访问localhost:8080/test.php的时候(这个时候nginx目录下根本就没有该文件)，但是通过上面的设置 location ~ .php$(表示正则表达式匹配以.php结尾的文件，详情参看location是如何定义和匹配的 <a href="http://wiki.nginx.org/NginxHttpCoreModule" target="_blank" rel="external">http://wiki.nginx.org/NginxHttpCoreModule</a>) ，nginx服务器会自动pass给 158.37.70.143的apache服务器了。该服务器下的test.php就会被自动解析，然后将html的结果页面返回给nginx，然后 nginx进行显示(如果nginx使用memcached模块或者squid还可以支持缓存)，输出结果为打印server2。</p>
+<p>　　如上是最为简单的使用nginx做为反向代理服务器的例子；</p>
+<h5 id="我们现在对如上例子进行扩展，使其支持如上的两台服务器。"><a href="#我们现在对如上例子进行扩展，使其支持如上的两台服务器。" class="headerlink" title="我们现在对如上例子进行扩展，使其支持如上的两台服务器。"></a>我们现在对如上例子进行扩展，使其支持如上的两台服务器。</h5><p>　　我们设置nginx.conf的server模块部分，将对应部分修改为：<br>　　复制代码 代码如下:</p>
+<p>　　location ^~ /phpMyAdmin/ {<br>　　proxy_pass 127.0.0.1:80 ;<br>　　}<br>　　location ~ .php$ {<br>　　proxy_pass 158.37.70.143:80 ;<br>　　}</p>
+<p>　　上面第一个部分location ^~ /phpMyAdmin/，表示不使用正则表达式匹配(^~)，而是直接匹配，也就是如果客户端访问的 URL是以<a href="http://localhost:8080/phpMyAdmin/" target="_blank" rel="external">http://localhost:8080/phpMyAdmin/</a> 开头的话(本地的nginx目录下根本没有phpMyAdmin目录)，nginx会自动pass到127.0.0.1:80 的Apache服务器，该服务器对phpMyAdmin目录下的页面进行解析，然后将结果发送给nginx，后者显示；<br>　　如果客户端访问URL是<a href="http://localhost/test.php" target="_blank" rel="external">http://localhost/test.php</a> 的话，则会被pass到158.37.70.143:80 的apache进行处理。</p>
+<p>　　因此综上，我们实现了针对不同请求的负载均衡。<br>　　〉如果用户访问静态页面index.html，最前端的nginx直接进行响应；<br>　　〉如果用户访问test.php页面的话，158.37.70.143:80 的Apache进行响应；<br>　　〉如果用户访问目录phpMyAdmin下的页面的话，127.0.0.1:80 的Apache进行响应；</p>
+<h4 id="访问同一页面-的负载均衡："><a href="#访问同一页面-的负载均衡：" class="headerlink" title="访问同一页面 的负载均衡："></a>访问同一页面 的负载均衡：</h4><p>　　即用户访问<a href="http://localhost:8080/test.php" target="_blank" rel="external">http://localhost:8080/test.php</a> 这个同一页面的时候，我们实现两台服务器的负载均衡 (实际情况中，这两个服务器上的数据要求同步一致，这里我们分别定义了打印server1和server2是为了进行辨认区别)。</p>
+<h5 id="现在我们的情况是在windows下nginx是localhost侦听8080端口；"><a href="#现在我们的情况是在windows下nginx是localhost侦听8080端口；" class="headerlink" title="现在我们的情况是在windows下nginx是localhost侦听8080端口；"></a>现在我们的情况是在windows下nginx是localhost侦听8080端口；</h5><p>　　两台apache，一台是127.0.0.1:80(包含test.php页面但是打印server1)，另一台是虚拟机的158.37.70.143:80(包含test.php页面但是打印server2)。</p>
+<h5 id="因此重新配置nginx-conf为："><a href="#因此重新配置nginx-conf为：" class="headerlink" title="因此重新配置nginx.conf为："></a>因此重新配置nginx.conf为：</h5><p>　　〉首先在nginx的配置文件nginx.conf的http模块中添加，服务器集群server cluster(我们这里是两台)的定义：<br>　　复制代码 代码如下:</p>
+<p>　　upstream myCluster {<br>　　server 127.0.0.1:80 ;<br>　　server 158.37.70.143:80 ;<br>　　}</p>
+<p>　　表示这个server cluster包含2台服务器<br>　　〉然后在server模块中定义，负载均衡：<br>　　复制代码 代码如下:</p>
+<p>　　location ~ .php$ {<br>　　proxy_pass <a href="http://myCluster" target="_blank" rel="external">http://myCluster</a> ; #这里的名字和上面的cluster的名字相同<br>　　proxy_redirect off;<br>　　proxy_set_header Host $host;<br>　　proxy_set_header X-Real-IP $remote_addr;<br>　　proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;<br>　　}</p>
+<p>　　这样的话，如果访问<a href="http://localhost:8080/test.php" target="_blank" rel="external">http://localhost:8080/test.php</a> 页面的话，nginx目录下根本没有该文件，但是它会自动将其pass到myCluster定义的服务区机群中，分别由127.0.0.1:80;或者158.37.70.143:80;来做处理。<br>　　上面在定义upstream的时候每个server之后没有定义权重，表示两者均衡；如果希望某个更多响应的话例如：<br>　　复制代码 代码如下:</p>
+<p>　　upstream myCluster {<br>　　server 127.0.0.1:80 weight=5;<br>　　server 158.37.70.143:80 ;<br>　　}</p>
+<p>　　这样表示5/6的几率访问第一个server,1/6访问第二个。另外还可以定义max_fails和fail_timeout等参数。</p>
+<p>　　综上，我们使用nginx的反向代理服务器reverse proxy server的功能，将其布置到多台apache server的前端。<br>　　nginx仅仅用来处理静态页面响应和动态请求的代理pass，后台的apache server作为app server来对前台pass过来的动态页面进行处理并返回给nginx。</p>
+<p>　　通过以上的架构，我们可以实现nginx和多台apache构成的机群cluster的负载均衡。<br>　　两种均衡：<br>　　1)可以在nginx中定义访问不同的内容，代理到不同的后台server； 如上例子中的访问phpMyAdmin目录代理到第一台server上；访问test.php代理到第二台server上；<br>　　2)可以在nginx中定义访问同一页面，均衡 (当然如果服务器性能不同可以定义权重来均衡)地代理到不同的后台server上。 如上的例子访问test.php页面，会均衡地代理到server1或者server2上。<br>　　实际应用中，server1和server2上分别保留相同的app程序和数据，需要考虑两者的数据同步。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+        
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/08/01/canvas应用之围棋/" rel="next" title="canvas应用之围棋">
+                <i class="fa fa-chevron-left"></i> canvas应用之围棋
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="http://ooypj2omz.bkt.clouddn.com/FullSizeRender.jpg"
+               alt="sunmz" />
+          <p class="site-author-name" itemprop="name">sunmz</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives">
+                <span class="site-state-item-count">13</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">2</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#环境："><span class="nav-number">1.</span> <span class="nav-text">环境：</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#我们本地是Windows系统，然后使用VirutalBox安装一个虚拟的Linux系统。"><span class="nav-number">1.1.</span> <span class="nav-text">我们本地是Windows系统，然后使用VirutalBox安装一个虚拟的Linux系统。</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#nginx用来作为反向代理服务器，放置到两台apache之前，作为用户访问的入口；"><span class="nav-number">1.2.</span> <span class="nav-text">nginx用来作为反向代理服务器，放置到两台apache之前，作为用户访问的入口；</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#如下介绍两种方法实现server-cluster的负载均衡。"><span class="nav-number">1.3.</span> <span class="nav-text">如下介绍两种方法实现server cluster的负载均衡。</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#针对不同请求-的负载均衡："><span class="nav-number">2.</span> <span class="nav-text">针对不同请求 的负载均衡：</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#在最简单地构建反向代理的时候-nginx仅仅处理静态不处理动态内容，动态内容交给后台的apache-server来处理-，我们具体的设置为：在nginx-conf中修改："><span class="nav-number">2.1.</span> <span class="nav-text">在最简单地构建反向代理的时候 (nginx仅仅处理静态不处理动态内容，动态内容交给后台的apache server来处理)，我们具体的设置为：在nginx.conf中修改：</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#我们现在对如上例子进行扩展，使其支持如上的两台服务器。"><span class="nav-number">2.2.</span> <span class="nav-text">我们现在对如上例子进行扩展，使其支持如上的两台服务器。</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#访问同一页面-的负载均衡："><span class="nav-number">3.</span> <span class="nav-text">访问同一页面 的负载均衡：</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#现在我们的情况是在windows下nginx是localhost侦听8080端口；"><span class="nav-number">3.1.</span> <span class="nav-text">现在我们的情况是在windows下nginx是localhost侦听8080端口；</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#因此重新配置nginx-conf为："><span class="nav-number">3.2.</span> <span class="nav-text">因此重新配置nginx.conf为：</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">sunmz</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.0"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.0"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
